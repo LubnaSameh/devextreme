@@ -1,32 +1,19 @@
-import fs from 'fs';
+import { readFile } from 'fs/promises';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
-export default function handler(req, res) {
-    const dbPath = path.join(process.cwd(), 'api', 'db.json'); // تأكد إن db.json في مكانه
+// حل مشكلة __dirname في ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-    // طباعة المسار للتأكد إنه صحيح
-    console.log("Database path:", dbPath);
+export default async function handler(req, res) {
+    const dbPath = path.join(__dirname, 'db.json'); // تأكد إن `db.json` في نفس الفولدر
 
-    // اختبار أساسي يثبت إن السيرفر شغال
-    if (req.url === "/api") {
-        return res.status(200).json({ message: "Server is running on Vercel!" });
-    }
-
-    // قراءة ملف db.json
-    fs.readFile(dbPath, 'utf8', (err, data) => {
-        if (err) {
-            console.error("Error reading database:", err);
-            res.status(500).json({ message: "Error reading database", error: err });
-            return;
-        }
-
+    try {
+        const data = await readFile(dbPath, 'utf8');
         const db = JSON.parse(data);
         const { url } = req;
 
-        // طباعة URL عشان نعرف المشكلة فين
-        console.log("Requested URL:", url);
-
-        // تحقق من كل الـ routes المتاحة
         if (url.includes('/api/employees')) {
             res.status(200).json(db.employees);
         } else if (url.includes('/api/orders')) {
@@ -43,5 +30,8 @@ export default function handler(req, res) {
             console.error("404 Not Found for URL:", url);
             res.status(404).json({ message: "Not Found" });
         }
-    });
+    } catch (err) {
+        console.error("Error reading database:", err);
+        res.status(500).json({ message: "Error reading database", error: err });
+    }
 }
