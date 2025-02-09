@@ -1,5 +1,5 @@
 import fs from 'fs'; // عشان نقرأ ملف db.json
-import path from 'path'; // عشان نحدد مساره
+import path from 'path'; // عشان نحدد المسار
 
 export default function handler(req, res) {
     const dbPath = path.join(process.cwd(), 'api', 'db.json'); // تحديد مكان db.json
@@ -7,7 +7,7 @@ export default function handler(req, res) {
     // قراءة البيانات من ملف JSON
     fs.readFile(dbPath, 'utf8', (err, data) => {
         if (err) {
-            res.status(500).json({ message: "Error reading database" });
+            res.status(500).json({ message: "Error reading database", error: err });
             return;
         }
 
