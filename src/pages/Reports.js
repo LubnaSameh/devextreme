@@ -1,11 +1,4 @@
-import React, { useMemo, useState } from "react";
-import { useQueries } from "@tanstack/react-query";
-import {
-  fetchSales,
-  fetchOrders,
-  fetchProducts,
-  fetchStockPrices,
-} from "../utils/fetchData";
+import React, { useState } from "react";
 import PieChart, { Label, Connector } from "devextreme-react/pie-chart";
 import {
   Chart,
@@ -20,7 +13,102 @@ import {
 } from "devextreme-react/chart";
 import { SelectBox } from "devextreme-react/select-box";
 import { LoadIndicator } from "devextreme-react/load-indicator";
-const CHART_CLASS = "shadow-sm mt-4 border p-0 p-md-3 w-100";
+
+// Comment: بيانات ثابتة (Static Data)
+const sales = [
+  {
+    month: "January",
+    year: 2023,
+    revenue: 12000,
+    expenses: 5000,
+    profit: 7000,
+  },
+  {
+    month: "February",
+    year: 2023,
+    revenue: 15000,
+    expenses: 6000,
+    profit: 9000,
+  },
+  { month: "March", year: 2023, revenue: 18000, expenses: 7000, profit: 11000 },
+  { month: "April", year: 2023, revenue: 20000, expenses: 7500, profit: 12500 },
+  {
+    month: "January",
+    year: 2024,
+    revenue: 22000,
+    expenses: 8000,
+    profit: 14000,
+  },
+  {
+    month: "February",
+    year: 2024,
+    revenue: 25000,
+    expenses: 9000,
+    profit: 16000,
+  },
+];
+
+const orders = [
+  {
+    id: 101,
+    customer_name: "Omar Ali",
+    order_date: "2024-02-05",
+    status: "Pending",
+    total_price: 2500,
+  },
+  {
+    id: 102,
+    customer_name: "Nour Hassan",
+    order_date: "2024-02-06",
+    status: "Completed",
+    total_price: 5000,
+  },
+  {
+    id: 103,
+    customer_name: "Layla Ahmed",
+    order_date: "2024-02-07",
+    status: "Shipped",
+    total_price: 3200,
+  },
+  {
+    id: 104,
+    customer_name: "Karim Adel",
+    order_date: "2024-02-08",
+    status: "Pending",
+    total_price: 2800,
+  },
+];
+
+const products = [
+  { id: 301, name: "Laptop", price: 1500, category: "Electronics", stock: 25 },
+  {
+    id: 302,
+    name: "Smartphone",
+    price: 800,
+    category: "Electronics",
+    stock: 50,
+  },
+  { id: 303, name: "Desk Chair", price: 200, category: "Furniture", stock: 10 },
+  { id: 304, name: "Monitor", price: 300, category: "Electronics", stock: 30 },
+];
+
+const stockPrices = [
+  { date: "2024-02-01", open: 1400, high: 1550, low: 1380, close: 1500 },
+  { date: "2024-02-02", open: 1500, high: 1600, low: 1450, close: 1580 },
+  { date: "2024-02-03", open: 1580, high: 1650, low: 1550, close: 1620 },
+  { date: "2024-02-04", open: 1620, high: 1700, low: 1600, close: 1680 },
+  { date: "2024-02-05", open: 1680, high: 1750, low: 1650, close: 1720 },
+  { date: "2024-02-06", open: 1720, high: 1800, low: 1700, close: 1780 },
+];
+
+const loadingSales = false;
+const salesError = null;
+const loadingOrders = false;
+const ordersError = null;
+const loadingProducts = false;
+const productsError = null;
+const loadingStockPrices = false;
+const stockPricesError = null;
 const ChartWrapper = React.memo(({ loading, error, data, children }) => {
   if (loading)
     return (
@@ -36,62 +124,34 @@ const ChartWrapper = React.memo(({ loading, error, data, children }) => {
 });
 
 const Reports = () => {
-  const [
-    { data: sales, isLoading: loadingSales, error: salesError },
-    { data: orders, isLoading: loadingOrders, error: ordersError },
-    { data: products, isLoading: loadingProducts, error: productsError },
-    {
-      data: stockPrices,
-      isLoading: loadingStockPrices,
-      error: stockPricesError,
-    },
-  ] = useQueries({
-    queries: [
-      { queryKey: ["sales"], queryFn: fetchSales, staleTime: 1000 * 60 * 5 },
-      { queryKey: ["orders"], queryFn: fetchOrders, staleTime: 1000 * 60 * 5 },
-      {
-        queryKey: ["products"],
-        queryFn: fetchProducts,
-        staleTime: 1000 * 60 * 5,
-      },
-      {
-        queryKey: ["stockPrices"],
-        queryFn: fetchStockPrices,
-        staleTime: 1000 * 60 * 5,
-      },
-    ],
-  });
-
   const [selectedYear, setSelectedYear] = useState("All");
+  const years = sales.length
+    ? ["All", ...new Set(sales.map((s) => s.year))]
+    : ["All"];
+  const filteredSales =
+    selectedYear === "All"
+      ? sales
+      : sales.filter((s) => s.year === selectedYear);
 
-  const years = useMemo(
-    () => (sales ? ["All", ...new Set(sales.map((s) => s.year))] : ["All"]),
-    [sales]
+  // Comment: group orders by status
+  const groupedOrders = Object.values(
+    orders.reduce((acc, order) => {
+      if (!acc[order.status]) {
+        acc[order.status] = { status: order.status, total_price: 0 };
+      }
+      acc[order.status].total_price += order.total_price;
+      return acc;
+    }, {})
   );
 
-  const filteredSales = useMemo(
-    () =>
-      sales?.filter((s) => selectedYear === "All" || s.year === selectedYear),
-    [sales, selectedYear]
-  );
+  // Comment: add range for bubble chart
+  const formattedStockPrices = stockPrices.map((sp) => ({
+    ...sp,
+    range: sp.high - sp.low,
+  }));
 
-  const groupedOrders = useMemo(() => {
-    if (!orders) return [];
-    return Object.values(
-      orders.reduce((acc, order) => {
-        if (!acc[order.status])
-          acc[order.status] = { status: order.status, total_price: 0 };
-        acc[order.status].total_price += order.total_price;
-        return acc;
-      }, {})
-    );
-  }, [orders]);
-
-  const formattedStockPrices = useMemo(() => {
-    if (!stockPrices) return [];
-    return stockPrices.map((sp) => ({ ...sp, range: sp.high - sp.low }));
-  }, [stockPrices]);
-
+  // Comment: chart configs
+  const CHART_CLASS = "shadow-sm mt-4 border p-0 p-md-3 w-100";
   const chartsConfig = [
     {
       id: "lineChart",

@@ -2,24 +2,34 @@ import React, { useEffect, useState } from "react";
 import SelectBox from "devextreme-react/select-box";
 import LoadPanel from "devextreme-react/load-panel";
 import CustomStore from "devextreme/data/custom_store";
-import { fetchEmployees, fetchSales } from "../utils/fetchData";
 import { CustomDataGrid, CustomChart } from "../components";
+
+const employees = [
+  { id: 1, name: "Ahmed Mohamed", position: "Software Engineer", salary: 15000 },
+  { id: 2, name: "Sara Ali", position: "Product Manager", salary: 20000 },
+  { id: 3, name: "Khaled Hassan", position: "HR Manager", salary: 18000 },
+  { id: 4, name: "Layla Samir", position: "Marketing Specialist", salary: 14000 },
+  { id: 5, name: "Omar Youssef", position: "UI/UX Designer", salary: 16000 }
+];
+
+const sales = [
+  { month: "January", year: 2023, revenue: 12000, expenses: 5000, profit: 7000 },
+  { month: "February", year: 2023, revenue: 15000, expenses: 6000, profit: 9000 },
+  { month: "March", year: 2023, revenue: 18000, expenses: 7000, profit: 11000 },
+  { month: "April", year: 2023, revenue: 20000, expenses: 7500, profit: 12500 },
+  { month: "January", year: 2024, revenue: 22000, expenses: 8000, profit: 14000 },
+  { month: "February", year: 2024, revenue: 25000, expenses: 9000, profit: 16000 }
+];
 
 const employeesStore = new CustomStore({
   key: "id",
-  load: async () => fetchEmployees(),
-  byKey: async (key) => {
-    const employees = await fetchEmployees();
-    return employees.find((emp) => emp.id === key);
-  },
+  load: async () => employees,
+  byKey: async (key) => employees.find((emp) => emp.id === key),
 });
 
 const positionsStore = new CustomStore({
   loadMode: "raw",
-  load: async () => {
-    const employees = await fetchEmployees();
-    return ["All", ...new Set(employees.map((emp) => emp.position))];
-  },
+  load: async () => ["All", ...new Set(employees.map((emp) => emp.position))],
 });
 
 const animateValue = (setState, start, end, duration = 2000) => {
@@ -38,36 +48,16 @@ const Dashboard = () => {
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [totalProfit, setTotalProfit] = useState(0);
   const [selectedPosition, setSelectedPosition] = useState("All");
-  const [salesData, setSalesData] = useState([]);
 
   useEffect(() => {
-    fetchEmployees().then((data) =>
-      animateValue(setTotalEmployees, 0, data.length, 1500)
-    );
-    fetchSales().then((data) => {
-      animateValue(
-        setTotalRevenue,
-        0,
-        data.reduce((sum, s) => sum + s.revenue, 0),
-        1500
-      );
-      animateValue(
-        setTotalProfit,
-        0,
-        data.reduce((sum, s) => sum + s.profit, 0),
-        1500
-      );
-      setSalesData(data);
-    });
+    animateValue(setTotalEmployees, 0, employees.length, 1500);
+    animateValue(setTotalRevenue, 0, sales.reduce((sum, s) => sum + s.revenue, 0), 1500);
+    animateValue(setTotalProfit, 0, sales.reduce((sum, s) => sum + s.profit, 0), 1500);
   }, []);
 
   return (
     <div className="container mt-4 mb-5 position-relative">
-      <LoadPanel
-        visible={false}
-        shadingColor="rgba(0,0,0,0.4)"
-        deferRendering={true}
-      />
+      <LoadPanel visible={false} shadingColor="rgba(0,0,0,0.4)" deferRendering={true} />
       <h2 className="mb-4 text-center fw-bold">
         <i className="dx-icon-chart fs-3 me-2"></i> Dashboard Overview
       </h2>
@@ -83,18 +73,14 @@ const Dashboard = () => {
           <div className="card text-center shadow-sm p-4">
             <i className="dx-icon-money fs-1 text-success"></i>
             <h5 className="mt-3">Monthly Revenue</h5>
-            <p className="fs-3 fw-bold text-success">
-              ${totalRevenue.toLocaleString()}
-            </p>
+            <p className="fs-3 fw-bold text-success">${totalRevenue.toLocaleString()}</p>
           </div>
         </div>
         <div className="col-xl-4 col-md-6 col-12">
           <div className="card text-center shadow-sm p-4">
             <i className="dx-icon-percent fs-1 text-warning"></i>
             <h5 className="mt-3">Monthly Profit</h5>
-            <p className="fs-3 fw-bold text-warning">
-              ${totalProfit.toLocaleString()}
-            </p>
+            <p className="fs-3 fw-bold text-warning">${totalProfit.toLocaleString()}</p>
           </div>
         </div>
       </div>
@@ -113,12 +99,8 @@ const Dashboard = () => {
         <CustomDataGrid dataSource={employeesStore} />
       </div>
       <div className="mt-5">
-        {salesData.length > 0 ? (
-          <CustomChart
-            data={salesData}
-            chartType="bar"
-            title="Sales Performance"
-          />
+        {sales.length > 0 ? (
+          <CustomChart data={sales} chartType="bar" title="Sales Performance" />
         ) : (
           <p className="text-center text-muted">Loading chart data...</p>
         )}
