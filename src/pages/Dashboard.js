@@ -4,7 +4,7 @@ import LoadPanel from "devextreme-react/load-panel";
 import CustomStore from "devextreme/data/custom_store";
 import { CustomDataGrid, CustomChart } from "../components";
 
-const employees = [
+let employeesArray = [
   { id: 1, name: "Ahmed Mohamed", position: "Software Engineer", salary: 15000 },
   { id: 2, name: "Sara Ali", position: "Product Manager", salary: 20000 },
   { id: 3, name: "Khaled Hassan", position: "HR Manager", salary: 18000 },
@@ -23,7 +23,10 @@ const sales = [
 
 const positionsStore = new CustomStore({
   loadMode: "raw",
-  load: async () => ["All", ...new Set(employees.map((emp) => emp.position))],
+  load: async () => {
+    const positions = [...new Set(employeesArray.map((emp) => emp.position))];
+    return ["All", ...positions];
+  },
 });
 
 const animateValue = (setState, start, end, duration = 2000) => {
@@ -48,15 +51,35 @@ const Dashboard = () => {
       key: "id",
       loadMode: "raw",
       load: async () => {
-        if (selectedPosition === "All") return employees;
-        return employees.filter((emp) => emp.position === selectedPosition);
+        if (selectedPosition === "All") return employeesArray;
+        return employeesArray.filter(
+          (emp) => emp.position === selectedPosition
+        );
       },
-      byKey: async (key) => employees.find((emp) => emp.id === key),
+      byKey: async (key) => {
+        return employeesArray.find((emp) => emp.id === key);
+      },
+      insert: async (values) => {
+        const maxId = employeesArray.length
+          ? Math.max(...employeesArray.map((emp) => emp.id))
+          : 0;
+        const newId = maxId + 1;
+        employeesArray.push({ ...values, id: newId });
+      },
+      update: async (key, values) => {
+        const index = employeesArray.findIndex((emp) => emp.id === key);
+        if (index > -1) {
+          employeesArray[index] = { ...employeesArray[index], ...values };
+        }
+      },
+      remove: async (key) => {
+        employeesArray = employeesArray.filter((emp) => emp.id !== key);
+      },
     });
   }, [selectedPosition]);
 
   useEffect(() => {
-    animateValue(setTotalEmployees, 0, employees.length, 1500);
+    animateValue(setTotalEmployees, 0, employeesArray.length, 1500);
     animateValue(
       setTotalRevenue,
       0,
@@ -122,7 +145,6 @@ const Dashboard = () => {
             searchEnabled={true}
           />
         </div>
-        {/* لما تبقى تعمل Refresh للـ store وبيفلتر فعلياً دلوقتي */}
         <CustomDataGrid dataSource={employeesStore} />
       </div>
 
