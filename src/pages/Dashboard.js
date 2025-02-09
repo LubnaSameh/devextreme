@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import SelectBox from "devextreme-react/select-box";
 import LoadPanel from "devextreme-react/load-panel";
 import CustomStore from "devextreme/data/custom_store";
@@ -9,7 +9,7 @@ const employees = [
   { id: 2, name: "Sara Ali", position: "Product Manager", salary: 20000 },
   { id: 3, name: "Khaled Hassan", position: "HR Manager", salary: 18000 },
   { id: 4, name: "Layla Samir", position: "Marketing Specialist", salary: 14000 },
-  { id: 5, name: "Omar Youssef", position: "UI/UX Designer", salary: 16000 }
+  { id: 5, name: "Omar Youssef", position: "UI/UX Designer", salary: 16000 },
 ];
 
 const sales = [
@@ -18,14 +18,8 @@ const sales = [
   { month: "March", year: 2023, revenue: 18000, expenses: 7000, profit: 11000 },
   { month: "April", year: 2023, revenue: 20000, expenses: 7500, profit: 12500 },
   { month: "January", year: 2024, revenue: 22000, expenses: 8000, profit: 14000 },
-  { month: "February", year: 2024, revenue: 25000, expenses: 9000, profit: 16000 }
+  { month: "February", year: 2024, revenue: 25000, expenses: 9000, profit: 16000 },
 ];
-
-const employeesStore = new CustomStore({
-  key: "id",
-  load: async () => employees,
-  byKey: async (key) => employees.find((emp) => emp.id === key),
-});
 
 const positionsStore = new CustomStore({
   loadMode: "raw",
@@ -49,18 +43,45 @@ const Dashboard = () => {
   const [totalProfit, setTotalProfit] = useState(0);
   const [selectedPosition, setSelectedPosition] = useState("All");
 
+  const employeesStore = useMemo(() => {
+    return new CustomStore({
+      key: "id",
+      loadMode: "raw",
+      load: async () => {
+        if (selectedPosition === "All") return employees;
+        return employees.filter((emp) => emp.position === selectedPosition);
+      },
+      byKey: async (key) => employees.find((emp) => emp.id === key),
+    });
+  }, [selectedPosition]);
+
   useEffect(() => {
     animateValue(setTotalEmployees, 0, employees.length, 1500);
-    animateValue(setTotalRevenue, 0, sales.reduce((sum, s) => sum + s.revenue, 0), 1500);
-    animateValue(setTotalProfit, 0, sales.reduce((sum, s) => sum + s.profit, 0), 1500);
+    animateValue(
+      setTotalRevenue,
+      0,
+      sales.reduce((sum, s) => sum + s.revenue, 0),
+      1500
+    );
+    animateValue(
+      setTotalProfit,
+      0,
+      sales.reduce((sum, s) => sum + s.profit, 0),
+      1500
+    );
   }, []);
 
   return (
     <div className="container mt-4 mb-5 position-relative">
-      <LoadPanel visible={false} shadingColor="rgba(0,0,0,0.4)" deferRendering={true} />
+      <LoadPanel
+        visible={false}
+        shadingColor="rgba(0,0,0,0.4)"
+        deferRendering={true}
+      />
       <h2 className="mb-4 text-center fw-bold">
         <i className="dx-icon-chart fs-3 me-2"></i> Dashboard Overview
       </h2>
+
       <div className="row g-3">
         <div className="col-xl-4 col-md-6 col-12">
           <div className="card text-center shadow-sm p-4">
@@ -73,17 +94,22 @@ const Dashboard = () => {
           <div className="card text-center shadow-sm p-4">
             <i className="dx-icon-money fs-1 text-success"></i>
             <h5 className="mt-3">Monthly Revenue</h5>
-            <p className="fs-3 fw-bold text-success">${totalRevenue.toLocaleString()}</p>
+            <p className="fs-3 fw-bold text-success">
+              ${totalRevenue.toLocaleString()}
+            </p>
           </div>
         </div>
         <div className="col-xl-4 col-md-6 col-12">
           <div className="card text-center shadow-sm p-4">
             <i className="dx-icon-percent fs-1 text-warning"></i>
             <h5 className="mt-3">Monthly Profit</h5>
-            <p className="fs-3 fw-bold text-warning">${totalProfit.toLocaleString()}</p>
+            <p className="fs-3 fw-bold text-warning">
+              ${totalProfit.toLocaleString()}
+            </p>
           </div>
         </div>
       </div>
+
       <div className="mt-5">
         <h4 className="mb-3">Employees Overview</h4>
         <div className="mb-3 d-flex flex-wrap align-items-center">
@@ -96,8 +122,10 @@ const Dashboard = () => {
             searchEnabled={true}
           />
         </div>
+        {/* لما تبقى تعمل Refresh للـ store وبيفلتر فعلياً دلوقتي */}
         <CustomDataGrid dataSource={employeesStore} />
       </div>
+
       <div className="mt-5">
         {sales.length > 0 ? (
           <CustomChart data={sales} chartType="bar" title="Sales Performance" />
